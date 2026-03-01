@@ -11,18 +11,11 @@ string filePath = Path.Combine(dataDir, "b2_lines.txt");
 void WriteFile()
 {
     Directory.CreateDirectory(dataDir);
-    using var writer = new StreamWriter(filePath);
+    using StreamWriter writer = new StreamWriter(filePath);
     for (int i = 1; i <= LINES; i++)
+    {
         writer.WriteLine($"Line {i}: The quick brown fox jumps over the lazy dog");
-}
-
-int ReadAndCount()
-{
-    int count = 0;
-    using var reader = new StreamReader(filePath);
-    while (reader.ReadLine() != null)
-        count++;
-    return count;
+    }
 }
 
 double[] writeTimings = new double[RUNS];
@@ -36,7 +29,7 @@ Console.WriteLine();
 int result = 0;
 for (int i = 0; i < RUNS; i++)
 {
-    var sw = Stopwatch.StartNew();
+    Stopwatch sw = Stopwatch.StartNew();
     WriteFile();
     sw.Stop();
     double writeElapsed = sw.Elapsed.TotalMilliseconds;
@@ -53,13 +46,13 @@ for (int i = 0; i < RUNS; i++)
 }
 
 Console.WriteLine();
-foreach (var (label, timings) in new[] { ("Write", writeTimings), ("Read", readTimings) })
+foreach ((string? label, double[]? timings) in new[] { ("Write", writeTimings), ("Read", readTimings) })
 {
     double min = timings[0], max = timings[0], sum = 0;
-    foreach (var t in timings) { sum += t; if (t < min) min = t; if (t > max) max = t; }
+    foreach (double t in timings) { sum += t; if (t < min) min = t; if (t > max) max = t; }
     double avg = sum / RUNS;
     double variance = 0;
-    foreach (var t in timings) variance += (t - avg) * (t - avg);
+    foreach (double t in timings) variance += (t - avg) * (t - avg);
     double stddev = Math.Sqrt(variance / RUNS);
     Console.WriteLine($"{label} — Min: {min:F2} ms | Avg: {avg:F2} ms | Max: {max:F2} ms | StdDev: {stddev:F2} ms");
 }
@@ -68,10 +61,14 @@ double[] totals = new double[RUNS];
 for (int i = 0; i < RUNS; i++) totals[i] = writeTimings[i] + readTimings[i];
 {
     double min = totals[0], max = totals[0], sum = 0;
-    foreach (var t in totals) { sum += t; if (t < min) min = t; if (t > max) max = t; }
+    foreach (double t in totals)
+    {
+        sum += t; if (t < min) min = t; if (t > max) max = t;
+    }
+    
     double avg = sum / RUNS;
     double variance = 0;
-    foreach (var t in totals) variance += (t - avg) * (t - avg);
+    foreach (double t in totals) variance += (t - avg) * (t - avg);
     double stddev = Math.Sqrt(variance / RUNS);
     Console.WriteLine($"Total — Min: {min:F2} ms | Avg: {avg:F2} ms | Max: {max:F2} ms | StdDev: {stddev:F2} ms");
 }
@@ -81,3 +78,13 @@ string status = result == LINES ? "✓" : "✗";
 Console.WriteLine($"Verification: {result} {status}");
 
 File.Delete(filePath);
+return;
+
+int ReadAndCount()
+{
+    int count = 0;
+    using StreamReader reader = new StreamReader(filePath);
+    while (reader.ReadLine() != null)
+        count++;
+    return count;
+}
