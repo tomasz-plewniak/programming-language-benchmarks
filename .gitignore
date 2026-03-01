@@ -1,0 +1,39 @@
+# Generated data files (can be large)
+data/*.txt
+data/*.csv
+data/file_*.txt
+
+# Benchmark results (commit manually when ready)
+results/*.csv
+
+# C# build output
+**/csharp/bin/
+**/csharp/obj/
+
+# Go binaries
+**/go/*.exe
+**/go/go.sum
+
+# Rust build output
+**/rust/target/
+**/rust/main
+
+# F# build output
+**/fsharp/bin/
+**/fsharp/obj/
+
+# Python cache
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+
+# Node.js
+**/javascript/node_modules/
+**/javascript/package-lock.json
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
