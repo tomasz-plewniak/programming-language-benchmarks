@@ -148,6 +148,14 @@ Each task folder contains one subfolder per language. Language-specific run comm
 
 **Rules:** Allocate array first (include in timing), then sum. No parallel or SIMD.
 
+**Key takeaways:**
+- **Rust** wins again (14.63ms) — LLVM auto-vectorizes the sum loop and `collect()` avoids double memory writes
+- **Go** is very close (16.13ms steady state) — first 2 runs are slow (~55ms) while GC warms up, then matches Rust
+- **C# and F#** are nearly identical (~60ms) — .NET zero-initializes arrays before filling, doubling memory writes. GC overhead on 80MB allocations also contributes
+- **JavaScript** (76ms) — V8's JIT handles typed numeric arrays well but can't match native compilers on raw iteration
+- **Python** (~486ms) — 27x slower than Rust. `sum()` is C-implemented so the gap is smaller than B1's 40x, but `list(range())` allocation is the bottleneck
+- Go's high StdDev (16.60) shows GC warmup effects — first runs include GC tuning overhead, then performance stabilizes
+
 ---
 
 ## MEDIUM LEVEL
@@ -435,7 +443,7 @@ After running all benchmarks, populate this comparison table:
 |------|-------------|-------------|-------------|---------------|-----------------|-------------|-------------|---------|
 | B1   | CPU         | 416.76      | 409.70      | 325.30        | 12918.85        | 1202.32     | 582.28      | Rust    |
 | B2   | I/O         | 248.94      | 345.84      | 207.67        | 333.55          | 4319.46     | 268.00      | Rust    |
-| B3   | Memory+CPU  |             |             |               |                 |             |             |         |
+| B3   | Memory+CPU  | 61.71       | 59.44       | 17.92         | 485.83          | 76.69       | 25.14       | Rust    |
 | M1   | CPU         |             |             |               |                 |             |             |         |
 | M2   | I/O+CPU     |             |             |               |                 |             |             |         |
 | M3   | Memory      |             |             |               |                 |             |             |         |
