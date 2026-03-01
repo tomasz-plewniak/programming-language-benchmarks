@@ -1,6 +1,6 @@
 # Cross-Language Performance Benchmark Suite
 
-**Languages:** C# · Python · JavaScript (Node.js) · Go
+**Languages:** C# · F# · Rust · Python · JavaScript (Node.js) · Go
 **Goal:** Identical tasks, identical inputs/outputs — measure raw execution time and resource usage.
 
 ---
@@ -35,9 +35,11 @@ print("Max: {max(results)} ms")
 | Language   | Timer                                      |
 |------------|--------------------------------------------|
 | C#         | `Stopwatch.StartNew()` / `.ElapsedMilliseconds` |
+| F#         | `Stopwatch.StartNew()` / `.Elapsed.TotalMilliseconds` |
 | Python     | `time.perf_counter()`                      |
 | JavaScript | `process.hrtime.bigint()`                  |
 | Go         | `time.Now()` / `time.Since()`              |
+| Rust       | `std::time::Instant::now()` / `.elapsed()`  |
 
 ---
 
@@ -49,9 +51,11 @@ programming-language-benchmarks/
 │   ├── beginner/
 │   │   ├── B1-fibonacci/
 │   │   │   ├── csharp/
+│   │   │   ├── fsharp/
 │   │   │   ├── python/
 │   │   │   ├── javascript/
-│   │   │   └── go/
+│   │   │   ├── go/
+│   │   │   └── rust/
 │   │   ├── B2-file-line-counter/
 │   │   └── B3-array-sum/
 │   ├── medium/
@@ -74,10 +78,12 @@ Each task folder contains one subfolder per language. Language-specific run comm
 
 | Language   | Project file              | Run command             |
 |------------|---------------------------|-------------------------|
-| C#         | `csharp/Benchmark.csproj` | `dotnet run -c Release` |
-| Python     | `python/main.py`          | `python main.py`        |
-| JavaScript | `javascript/main.js`      | `node main.js`          |
-| Go         | `go/main.go` + `go.mod`   | `go run main.go`        |
+| C#         | `csharp/Benchmark.csproj`  | `dotnet run -c Release` |
+| F#         | `fsharp/Benchmark.fsproj`  | `dotnet run -c Release` |
+| Python     | `python/main.py`           | `python main.py`        |
+| JavaScript | `javascript/main.js`       | `node main.js`          |
+| Go         | `go/main.go` + `go.mod`    | `go run main.go`        |
+| Rust       | `rust/main.rs`             | `rustc -O main.rs && ./main` |
 
 ---
 
@@ -236,9 +242,11 @@ id,first_name,last_name,email,department,salary
 - Files must be read concurrently (not sequentially)
 - Word counting must be thread-safe
 - C#: `Task.WhenAll` + `ConcurrentDictionary`
+- F#: `Async.Parallel` + `ConcurrentDictionary`
 - Python: `concurrent.futures.ThreadPoolExecutor`
 - JavaScript: `Promise.all` + worker approach or async file reads
 - Go: goroutines + `sync.Map` or mutex-protected map
+- Rust: `std::thread` + `Arc<Mutex<HashMap>>`
 - Report total unique words and top 100 by frequency
 
 ---
@@ -278,9 +286,11 @@ id,first_name,last_name,email,department,salary
 - Below threshold (e.g., 10,000 elements), fall back to sequential sort
 - Measure: total time, speedup vs single-threaded version
 - C#: `Parallel.Invoke` / `Task`
+- F#: `Async.Parallel` / `Task`
 - Python: `multiprocessing.Pool` (to escape GIL)
 - JavaScript: `Worker threads`
 - Go: goroutines + channels
+- Rust: `std::thread` / `rayon`-style scoped threads
 
 ---
 
@@ -308,6 +318,7 @@ id,first_name,last_name,email,department,salary
   - Python: `asyncio` + `aiohttp` or raw sockets
   - JavaScript: `http` module
   - Go: `net/http`
+  - Rust: `std::net::TcpListener` or `hyper` (minimal)
 - Prime calculation must be done per-request (no caching)
 
 ---
@@ -332,9 +343,11 @@ id,first_name,last_name,email,department,salary
 
 **Rules:**
 - C#: `ObjectPool<T>` or custom `ConcurrentBag`-based pool
+- F#: `ObjectPool<T>` or custom `MailboxProcessor`-based pool
 - Python: Custom pool with `deque`
 - JavaScript: Custom pool with array
 - Go: `sync.Pool`
+- Rust: Custom pool with `Vec` + manual memory management
 - Report: total time, allocations count, GC pause time (if measurable)
 
 ---
@@ -378,8 +391,8 @@ Each benchmark should output results in this format:
 
 ```
 === BENCHMARK: [Task ID] - [Task Name] ===
-Language: [C# / Python / JavaScript / Go]
-Runtime:  [.NET 9 / Python 3.12 / Node 22 / Go 1.22]
+Language: [C# / F# / Rust / Python / JavaScript / Go]
+Runtime:  [.NET 10 / rustc / Python 3.14 / Node 24 / Go 1.26]
 
 Run  1: 1234.56 ms
 Run  2: 1230.12 ms
@@ -402,18 +415,18 @@ Memory Peak:  [if measurable] MB
 After running all benchmarks, populate this comparison table:
 
 ```
-| Task | Category    | C# (avg ms) | Python (avg ms) | JS (avg ms) | Go (avg ms) | Fastest |
-|------|-------------|-------------|-----------------|-------------|-------------|---------|
-| B1   | CPU         |             |                 |             |             |         |
-| B2   | I/O         |             |                 |             |             |         |
-| B3   | Memory+CPU  |             |                 |             |             |         |
-| M1   | CPU         |             |                 |             |             |         |
-| M2   | I/O+CPU     |             |                 |             |             |         |
-| M3   | Memory      |             |                 |             |             |         |
-| A1   | CPU         |             |                 |             |             |         |
-| A2   | I/O+Conc    |             |                 |             |             |         |
-| A3   | Memory+CPU  |             |                 |             |             |         |
-| P1   | CPU+Conc    |             |                 |             |             |         |
-| P2   | I/O+CPU+C   |             |                 |             |             |         |
-| P3   | Memory      |             |                 |             |             |         |
+| Task | Category    | C# (avg ms) | F# (avg ms) | Rust (avg ms) | Python (avg ms) | JS (avg ms) | Go (avg ms) | Fastest |
+|------|-------------|-------------|-------------|---------------|-----------------|-------------|-------------|---------|
+| B1   | CPU         | 416.76      | 409.70      | 325.30        | 12918.85        | 1202.32     | 582.28      | Rust    |
+| B2   | I/O         |             |             |               |                 |             |             |         |
+| B3   | Memory+CPU  |             |             |               |                 |             |             |         |
+| M1   | CPU         |             |             |               |                 |             |             |         |
+| M2   | I/O+CPU     |             |             |               |                 |             |             |         |
+| M3   | Memory      |             |             |               |                 |             |             |         |
+| A1   | CPU         |             |             |               |                 |             |             |         |
+| A2   | I/O+Conc    |             |             |               |                 |             |             |         |
+| A3   | Memory+CPU  |             |             |               |                 |             |             |         |
+| P1   | CPU+Conc    |             |             |               |                 |             |             |         |
+| P2   | I/O+CPU+C   |             |             |               |                 |             |             |         |
+| P3   | Memory      |             |             |               |                 |             |             |         |
 ```
