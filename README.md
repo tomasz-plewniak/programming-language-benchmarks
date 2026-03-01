@@ -102,6 +102,13 @@ Each task folder contains one subfolder per language. Language-specific run comm
 
 **Rules:** Must use recursive `fib(n) = fib(n-1) + fib(n-2)` with base cases `fib(0)=0`, `fib(1)=1`. No caching.
 
+**Key takeaways:**
+- **Rust** is the fastest — native compilation with zero runtime overhead gives it ~22% advantage over .NET's JIT
+- **F# and C#** are nearly tied (same .NET runtime), both ~1.3x behind Rust
+- **Go** is consistent (lowest StdDev) but 1.8x behind Rust — its compiler is fast but less aggressive with optimizations
+- **JavaScript** (V8 JIT) is respectable at 3.7x but can't match compiled languages on pure recursion
+- **Python** is ~40x slower — pure interpreter overhead on ~330M function calls. This is the benchmark where Python suffers the most
+
 ---
 
 ### B2 — File Line Counter (I/O-bound)
@@ -116,6 +123,15 @@ Each task folder contains one subfolder per language. Language-specific run comm
 | Category      | I/O-bound                     |
 
 **Rules:** Measure write and read separately. Report both times.
+
+**Key takeaways:**
+- **Rust** fastest overall — `BufWriter` delivers the best write performance
+- **Go** has the fastest read (41ms) — `bufio.Scanner` is extremely efficient for line-by-line reading
+- **C#** well-balanced — strong read (73ms) and decent write, good .NET stream buffering
+- **Python** surprisingly competitive (334ms total) — CPython's file I/O is implemented in C, leveling the playing field
+- **F#** slightly behind C# despite sharing .NET runtime — string interpolation in the write loop adds overhead
+- **JavaScript** write is catastrophically slow (4.2s) — synchronous `writeSync` per line without buffering is extremely inefficient
+- I/O benchmarks narrow the gap between languages since the OS kernel handles the actual disk operations
 
 ---
 
@@ -418,7 +434,7 @@ After running all benchmarks, populate this comparison table:
 | Task | Category    | C# (avg ms) | F# (avg ms) | Rust (avg ms) | Python (avg ms) | JS (avg ms) | Go (avg ms) | Fastest |
 |------|-------------|-------------|-------------|---------------|-----------------|-------------|-------------|---------|
 | B1   | CPU         | 416.76      | 409.70      | 325.30        | 12918.85        | 1202.32     | 582.28      | Rust    |
-| B2   | I/O         |             |             |               |                 |             |             |         |
+| B2   | I/O         | 248.94      | 345.84      | 207.67        | 333.55          | 4319.46     | 268.00      | Rust    |
 | B3   | Memory+CPU  |             |             |               |                 |             |             |         |
 | M1   | CPU         |             |             |               |                 |             |             |         |
 | M2   | I/O+CPU     |             |             |               |                 |             |             |         |
