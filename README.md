@@ -41,6 +41,46 @@ print("Max: {max(results)} ms")
 
 ---
 
+## Repository Structure
+
+```
+programming-language-benchmarks/
+├── benchmarks/
+│   ├── beginner/
+│   │   ├── B1-fibonacci/
+│   │   │   ├── csharp/
+│   │   │   ├── python/
+│   │   │   ├── javascript/
+│   │   │   └── go/
+│   │   ├── B2-file-line-counter/
+│   │   └── B3-array-sum/
+│   ├── medium/
+│   │   ├── M1-quicksort/
+│   │   ├── M2-csv-processing/
+│   │   └── M3-hashmap-stress/
+│   ├── advanced/
+│   │   ├── A1-matrix-multiplication/
+│   │   ├── A2-concurrent-file-processing/
+│   │   └── A3-binary-tree/
+│   └── pro/
+│       ├── P1-parallel-merge-sort/
+│       ├── P2-http-server/
+│       └── P3-memory-pool/
+├── data/        ← shared generated input files (gitignored when large)
+└── results/     ← timing CSVs and summary dashboard
+```
+
+Each task folder contains one subfolder per language. Language-specific run commands:
+
+| Language   | Project file              | Run command             |
+|------------|---------------------------|-------------------------|
+| C#         | `csharp/Benchmark.csproj` | `dotnet run -c Release` |
+| Python     | `python/main.py`          | `python main.py`        |
+| JavaScript | `javascript/main.js`      | `node main.js`          |
+| Go         | `go/main.go` + `go.mod`   | `go run main.go`        |
+
+---
+
 ## BEGINNER LEVEL
 
 ### B1 — Fibonacci (CPU-bound)
