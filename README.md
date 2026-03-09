@@ -3,6 +3,8 @@
 **Languages:** C# · F# · Rust · Python · JavaScript (Node.js) · Go
 **Goal:** Identical tasks, identical inputs/outputs — measure raw execution time and resource usage.
 
+**Test machine:** MacBook Air M4, 16 GB RAM
+
 ---
 
 ## Benchmark Rules
@@ -103,11 +105,11 @@ Each task folder contains one subfolder per language. Language-specific run comm
 **Rules:** Must use recursive `fib(n) = fib(n-1) + fib(n-2)` with base cases `fib(0)=0`, `fib(1)=1`. No caching.
 
 **Key takeaways:**
-- **Rust** is the fastest — native compilation with zero runtime overhead gives it ~22% advantage over .NET's JIT
-- **F# and C#** are nearly tied (same .NET runtime), both ~1.3x behind Rust
-- **Go** is consistent (lowest StdDev) but 1.8x behind Rust — its compiler is fast but less aggressive with optimizations
-- **JavaScript** (V8 JIT) is respectable at 3.7x but can't match compiled languages on pure recursion
-- **Python** is ~40x slower — pure interpreter overhead on ~330M function calls. This is the benchmark where Python suffers the most
+- **Rust** is the fastest (~162ms) — native compilation with zero runtime overhead
+- **C#** (~179ms) edges out F# (~191ms) on this machine — JIT warms up over runs (first run ~263ms, steady state ~167ms)
+- **Go** (~207ms) is 1.3x behind Rust — consistent but its compiler is less aggressive with optimizations
+- **JavaScript** (~543ms) — V8 JIT is 3.4x behind Rust on pure recursion
+- **Python** (~5843ms) — ~36x slower. Pure interpreter overhead on ~330M function calls. This is the benchmark where Python suffers the most
 
 ---
 
@@ -125,12 +127,12 @@ Each task folder contains one subfolder per language. Language-specific run comm
 **Rules:** Measure write and read separately. Report both times.
 
 **Key takeaways:**
-- **Rust** fastest overall — `BufWriter` delivers the best write performance
-- **Go** has the fastest read (41ms) — `bufio.Scanner` is extremely efficient for line-by-line reading
-- **C#** well-balanced — strong read (73ms) and decent write, good .NET stream buffering
-- **Python** surprisingly competitive (334ms total) — CPython's file I/O is implemented in C, leveling the playing field
-- **F#** slightly behind C# despite sharing .NET runtime — string interpolation in the write loop adds overhead
-- **JavaScript** write is catastrophically slow (4.2s) — synchronous `writeSync` per line without buffering is extremely inefficient
+- **Rust** fastest overall (~82ms) — `BufWriter` delivers the best write performance
+- **C#** second place (~106ms) — well-balanced write (70ms) and read (36ms)
+- **Go** (~113ms) — fastest read (18ms) with `bufio.Scanner`, but write (95ms) is slower
+- **Python** surprisingly competitive (~125ms) — CPython's file I/O is implemented in C, leveling the playing field
+- **F#** (~132ms) — behind C# despite sharing .NET runtime; high variance as .NET warms up
+- **JavaScript** write is catastrophically slow (~1067ms) — synchronous `writeSync` per line without buffering is extremely inefficient
 - I/O benchmarks narrow the gap between languages since the OS kernel handles the actual disk operations
 
 ---
@@ -149,12 +151,11 @@ Each task folder contains one subfolder per language. Language-specific run comm
 **Rules:** Allocate array first (include in timing), then sum. No parallel or SIMD.
 
 **Key takeaways:**
-- **Rust** wins again (14.63ms) — LLVM auto-vectorizes the sum loop and `collect()` avoids double memory writes
-- **Go** is very close (16.13ms steady state) — first 2 runs are slow (~55ms) while GC warms up, then matches Rust
-- **C# and F#** are nearly identical (~60ms) — .NET zero-initializes arrays before filling, doubling memory writes. GC overhead on 80MB allocations also contributes
-- **JavaScript** (76ms) — V8's JIT handles typed numeric arrays well but can't match native compilers on raw iteration
-- **Python** (~486ms) — 27x slower than Rust. `sum()` is C-implemented so the gap is smaller than B1's 40x, but `list(range())` allocation is the bottleneck
-- Go's high StdDev (16.60) shows GC warmup effects — first runs include GC tuning overhead, then performance stabilizes
+- **Rust** wins again (~5.8ms) — LLVM auto-vectorizes the sum loop and `collect()` avoids double memory writes
+- **Go** is very close (~6.6ms) — first 2 runs are slow (~10ms) while GC warms up, then matches Rust
+- **F#** (~12.7ms) and **C#** (~14.7ms) — .NET much improved; F# edges ahead with lower variance
+- **JavaScript** (~18.7ms) — V8's JIT handles numeric arrays well, strong showing
+- **Python** (~144ms) — 25x slower than Rust. `sum()` is C-implemented so the gap is smaller than B1's 36x, but list allocation is the bottleneck
 
 ---
 
@@ -451,9 +452,9 @@ After running all benchmarks, populate this comparison table:
 ```
 | Task | Category    | C# (avg ms) | F# (avg ms) | Rust (avg ms) | Python (avg ms) | JS (avg ms) | Go (avg ms) | Fastest |
 |------|-------------|-------------|-------------|---------------|-----------------|-------------|-------------|---------|
-| B1   | CPU         | 416.76      | 409.70      | 325.30        | 12918.85        | 1202.32     | 582.28      | Rust    |
-| B2   | I/O         | 248.94      | 345.84      | 207.67        | 333.55          | 4319.46     | 268.00      | Rust    |
-| B3   | Memory+CPU  | 61.71       | 59.44       | 17.92         | 485.83          | 76.69       | 25.14       | Rust    |
+| B1   | CPU         | 178.55      | 191.11      | 161.54        | 5843.30         | 542.91      | 207.19      | Rust    |
+| B2   | I/O         | 105.83      | 131.92      | 81.70         | 125.11          | 1099.59     | 112.71      | Rust    |
+| B3   | Memory+CPU  | 14.68       | 12.67       | 5.78          | 144.23          | 18.68       | 6.60        | Rust    |
 | M1   | CPU         | 286.49      | 280.62      | 261.80        | 5370.69         | 334.22      | 262.84      | Rust    |
 | M2   | I/O+CPU     |             |             |               |                 |             |             |         |
 | M3   | Memory      |             |             |               |                 |             |             |         |
