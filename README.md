@@ -177,6 +177,16 @@ Each task folder contains one subfolder per language. Language-specific run comm
 - **Do NOT use built-in sort** — implement the full algorithm
 - Verify: SHA-256 hash of output array joined by commas must match across all languages
 
+**Implementation notes:** Lomuto partition (iterative, explicit stack). PRNG: LCG with a=1664525, c=1013904223, seed=42 (uint32 wrapping), values reinterpreted as int32. Rust uses an inline SHA-256 implementation (no external crates). Timing measures sort only (array generation is excluded).
+
+**SHA-256 verification:** `b2f4421169f11303f55c0a84bfe6ea2efc1ff3a230574f099687dea375d140bb` ✓ (all languages match)
+
+**Key takeaways:**
+- **Rust and Go are essentially tied** (~262ms vs ~263ms avg) — the sort dominates; both generate efficient machine code for this workload
+- **F# and C# nearly identical** (~281ms vs ~286ms) — same .NET runtime; F# marginally faster with lowest StdDev (1.14ms)
+- **JavaScript** (~334ms) — V8 JIT is respectable but ~28% behind Rust on array-heavy sorting work
+- **Python** (~5371ms) — ~21x slower than Rust; better than B1's 40x because list index access is cheaper than Python function call overhead, but the O(n log n) inner loop still runs in the interpreter
+
 ---
 
 ### M2 — CSV Processing (I/O + CPU)
@@ -444,7 +454,7 @@ After running all benchmarks, populate this comparison table:
 | B1   | CPU         | 416.76      | 409.70      | 325.30        | 12918.85        | 1202.32     | 582.28      | Rust    |
 | B2   | I/O         | 248.94      | 345.84      | 207.67        | 333.55          | 4319.46     | 268.00      | Rust    |
 | B3   | Memory+CPU  | 61.71       | 59.44       | 17.92         | 485.83          | 76.69       | 25.14       | Rust    |
-| M1   | CPU         |             |             |               |                 |             |             |         |
+| M1   | CPU         | 286.49      | 280.62      | 261.80        | 5370.69         | 334.22      | 262.84      | Rust    |
 | M2   | I/O+CPU     |             |             |               |                 |             |             |         |
 | M3   | Memory      |             |             |               |                 |             |             |         |
 | A1   | CPU         |             |             |               |                 |             |             |         |
