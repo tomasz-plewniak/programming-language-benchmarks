@@ -248,6 +248,49 @@ id,first_name,last_name,email,department,salary
 
 **Rules:** Measure insert time and lookup time separately.
 
+**Verification:** sum = `77472948125728`
+
+**How to run:**
+```bash
+# Rust
+cd benchmarks/medium/M3-hashmap-stress/rust && rustc -O main.rs -o main && ./main
+
+# Go
+cd benchmarks/medium/M3-hashmap-stress/go && go run main.go
+
+# C#
+cd benchmarks/medium/M3-hashmap-stress/csharp && dotnet run -c Release
+
+# F#
+cd benchmarks/medium/M3-hashmap-stress/fsharp && dotnet run -c Release
+
+# Python
+cd benchmarks/medium/M3-hashmap-stress/python && python3 main.py
+
+# JavaScript
+cd benchmarks/medium/M3-hashmap-stress/javascript && node main.js
+```
+
+**Results:**
+
+| Language   | Insert Avg (ms) | Lookup Avg (ms) | Total Avg (ms) | Insert StdDev | Lookup StdDev |
+|------------|-----------------|-----------------|----------------|---------------|---------------|
+| C#         | 398.88          | 216.30          | 615.19         | 40.10         | 28.71         |
+| Go         | 742.14          | 247.99          | 990.14         | 6.94          | 2.64          |
+| Rust       | 738.38          | 282.54          | 1020.93        | 21.84         | 5.89          |
+| F#         | 817.31          | 353.20          | 1170.51        | 70.31         | 5.79          |
+| Python     | 1125.09         | 562.79          | 1687.88        | 17.34         | 2.36          |
+| JavaScript | 1834.94         | 442.78          | 2277.72        | 39.02         | 18.75         |
+
+**Findings:**
+- **C#** (~615ms) — Dominant winner. .NET's `Dictionary<K,V>` uses a flat array-of-entries layout with open addressing, giving excellent cache locality for both insert and lookup. The JIT aggressively inlines string hashing and equality checks
+- **Go** (~990ms) — Strong second place. Go's built-in `map` has a highly optimized Swiss-table-inspired implementation with good memory locality. Very consistent performance (lowest stddev across runs)
+- **Rust** (~1021ms) — Close to Go. `std::collections::HashMap` uses a Robin Hood hashing scheme with SIMD probing (hashbrown). The `format!("user_{}", i)` allocation overhead on every insert/lookup is the main bottleneck — unlike Go's built-in `fmt.Sprintf` which can optimize string formatting more aggressively
+- **F#** (~1171ms) — 1.9x slower than C# despite sharing the same .NET `Dictionary`. The overhead comes from `sprintf "user_%d"` being significantly slower than C#'s string interpolation, as F# printf-family functions go through a general-purpose formatting pipeline
+- **Python** (~1688ms) — Only 1.7x slower than Rust. CPython's `dict` is implemented in highly optimized C with a compact hash table layout. String hashing is cached after first computation, benefiting lookups. The f-string formatting in the tight lookup loop is the main cost
+- **JavaScript** (~2278ms) — Slowest overall. V8's `Map` with BigInt values has significant overhead: BigInt arithmetic is not JIT-optimized like regular numbers, and the string key creation via template literals in the hot loop generates heavy GC pressure from 6M+ short-lived string allocations per run
+- Memory-intensive benchmarks show a different ranking than CPU-bound ones: C# leads due to .NET's superior hash table implementation, while Rust's usual dominance is reduced by per-key string allocation costs
+
 ---
 
 ## ADVANCED LEVEL
@@ -469,7 +512,7 @@ After running all benchmarks, populate this comparison table:
 | B3   | Memory+CPU  | 14.68       | 12.67       | 5.78          | 144.23          | 18.68       | 6.60        | Rust    |
 | M1   | CPU         | 286.49      | 280.62      | 261.80        | 5370.69         | 334.22      | 262.84      | Rust    |
 | M2   | I/O+CPU     | 111.89      | 111.19      | 100.08        | 304.69          | 252.58      | 56.83       | Go      |
-| M3   | Memory      |             |             |               |                 |             |             |         |
+| M3   | Memory      | 615.19      | 1170.51     | 1020.93       | 1687.88         | 2277.72     | 990.14      | C#      |
 | A1   | CPU         |             |             |               |                 |             |             |         |
 | A2   | I/O+Conc    |             |             |               |                 |             |             |         |
 | A3   | Memory+CPU  |             |             |               |                 |             |             |         |
