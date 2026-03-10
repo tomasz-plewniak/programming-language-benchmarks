@@ -219,6 +219,18 @@ id,first_name,last_name,email,department,salary
 
 **Rules:** No CSV libraries — parse manually (split by comma is sufficient; no quoted fields in this dataset).
 
+**Implementation notes:** LCG PRNG (a=1664525, c=1013904223, seed=42, uint32 wrapping) generates salaries mapped to [30000.00, 150000.00]. Departments cycle by row index. CSV generation happens once before the timing loop; each run times read → filter → group → aggregate → sort → write. Verification: SHA-256 of output.csv content.
+
+**SHA-256 verification:** `a917630f982302ad8e6a03f53816cc0aade06cdad8acb8748a34eb942f10b8bd` ✓ (all languages match)
+
+**Key takeaways:**
+- **Go** is the clear winner (~57ms avg) — `bufio.Scanner` line-by-line reading avoids allocating the entire file, and Go's `strconv.ParseFloat` + map operations are extremely efficient. Lowest variance (0.48ms) shows no GC interference
+- **C#** and **F#** have nearly identical steady-state performance (~83ms after JIT warmup), but their averages (~112ms / ~111ms) are inflated by early-run JIT compilation spikes (first runs 115-270ms). The .NET `StreamReader` + `Span<char>`-based parsing is very competitive once warm
+- **Rust** (~100ms) lands third — surprising given Rust's dominance in prior CPU-bound benchmarks. The bottleneck is `HashMap` string key allocation: each filtered row calls `dept.to_string()` creating a heap allocation, and `BufReader::lines()` allocates a new `String` per line. This I/O allocation pattern neutralizes Rust's zero-cost abstraction advantage
+- **JavaScript** (~253ms) — V8's string splitting (`line.split(',')`) creates many small string objects per line, and `parseFloat` is slower than native parsers. Reading the entire file into memory with `readFileSync` is fast, but the per-line processing is 4.5x slower than Go
+- **Python** (~305ms) — only 1.2x slower than JavaScript, much closer than in CPU-bound benchmarks. CPython's I/O layer is C-implemented, and the simple `split(',')` + `float()` pattern is well-optimized. The interpreter overhead matters less when each iteration does substantial I/O work
+- I/O-heavy benchmarks compress the language performance gap: the fastest-to-slowest ratio is 5.4x (vs 33x for B1-fibonacci), since disk I/O and OS buffering equalize across runtimes
+
 ---
 
 ### M3 — Hash Map Stress Test (Memory-intensive)
@@ -456,7 +468,7 @@ After running all benchmarks, populate this comparison table:
 | B2   | I/O         | 105.83      | 131.92      | 81.70         | 125.11          | 1099.59     | 112.71      | Rust    |
 | B3   | Memory+CPU  | 14.68       | 12.67       | 5.78          | 144.23          | 18.68       | 6.60        | Rust    |
 | M1   | CPU         | 286.49      | 280.62      | 261.80        | 5370.69         | 334.22      | 262.84      | Rust    |
-| M2   | I/O+CPU     |             |             |               |                 |             |             |         |
+| M2   | I/O+CPU     | 111.89      | 111.19      | 100.08        | 304.69          | 252.58      | 56.83       | Go      |
 | M3   | Memory      |             |             |               |                 |             |             |         |
 | A1   | CPU         |             |             |               |                 |             |             |         |
 | A2   | I/O+Conc    |             |             |               |                 |             |             |         |
