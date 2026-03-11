@@ -312,6 +312,49 @@ cd benchmarks/medium/M3-hashmap-stress/javascript && node main.js
 - Row-major storage in all languages
 - Values must match across languages (within floating-point tolerance ±0.0001)
 
+**Verification:** `C[0][0] = 199.690400`, `C[500][500] = 212.682600`, `C[999][999] = 210.105500`
+
+**How to run:**
+```bash
+# Rust
+cd benchmarks/advanced/A1-matrix-multiply/rust && rustc -O main.rs -o main && ./main
+
+# Go
+cd benchmarks/advanced/A1-matrix-multiply/go && go run main.go
+
+# C#
+cd benchmarks/advanced/A1-matrix-multiply/csharp && dotnet run -c Release
+
+# F#
+cd benchmarks/advanced/A1-matrix-multiply/fsharp && dotnet run -c Release
+
+# Python
+cd benchmarks/advanced/A1-matrix-multiply/python && python3 main.py
+
+# JavaScript
+cd benchmarks/advanced/A1-matrix-multiply/javascript && node main.js
+```
+
+**Results:**
+
+| Language   | Avg (ms)   | Min (ms)   | Max (ms)   | StdDev (ms) |
+|------------|------------|------------|------------|-------------|
+| Rust       | 123.18     | 119.28     | 145.63     | 7.55        |
+| Go         | 259.44     | 256.57     | 272.50     | 4.43        |
+| C#         | 550.30     | 543.22     | 567.23     | 6.26        |
+| F#         | 837.93     | 831.01     | 856.52     | 7.29        |
+| JavaScript | 837.81     | 831.70     | 841.24     | 3.43        |
+| Python     | 50416.53   | 48910.86   | 61106.18   | 3580.63     |
+
+**Findings:**
+- **Rust** (~123ms) — Dominant winner at 2.1x faster than Go. LLVM auto-vectorizes the inner loop with SIMD and the `ikj` loop order maximizes cache locality for both reading B and writing C. Flat `Vec<f64>` gives perfect memory layout
+- **Go** (~259ms) — Solid second place. Go's compiler has improved significantly at loop optimization but still lacks the aggressive auto-vectorization of LLVM. The `ikj` loop order helps but Go generates less efficient machine code for the inner multiply-accumulate
+- **C#** (~550ms) — 4.5x slower than Rust. The .NET JIT doesn't auto-vectorize the nested loop as aggressively as LLVM. Bounds checking on array accesses in the inner loop adds overhead despite `[MethodImpl(AggressiveOptimization)]` hints
+- **JavaScript** (~838ms) — Essentially tied with F#. V8's TurboFan JIT does well with `Float64Array` (typed arrays give it fixed-type guarantees), but can't match AOT compilers for tight numerical loops. The consistent low stddev (3.43ms) shows stable JIT behavior
+- **F#** (~838ms) — 1.5x slower than C# despite sharing the .NET runtime. F#'s `for..in` range loops compile to slightly different IL than C#'s `for` loops, and the F# compiler generates less optimized array access patterns. The gap shows F# compiler overhead rather than runtime limitations
+- **Python** (~50,417ms) — 409x slower than Rust. Pure CPython with a billion iterations of interpreted bytecode for the triple-nested loop. This is the classic worst case for Python — no NumPy/BLAS to rescue it. The massive gap (60x vs JavaScript) illustrates why numerical Python always uses C extensions
+- This benchmark reveals the true CPU-bound performance gap between compiled and interpreted languages. The spread from Rust (123ms) to Python (50,417ms) is the widest of any benchmark so far
+
 ---
 
 ### A2 — Concurrent File Processing (I/O + Concurrency)
@@ -513,7 +556,7 @@ After running all benchmarks, populate this comparison table:
 | M1   | CPU         | 286.49      | 280.62      | 261.80        | 5370.69         | 334.22      | 262.84      | Rust    |
 | M2   | I/O+CPU     | 111.89      | 111.19      | 100.08        | 304.69          | 252.58      | 56.83       | Go      |
 | M3   | Memory      | 615.19      | 1170.51     | 1020.93       | 1687.88         | 2277.72     | 990.14      | C#      |
-| A1   | CPU         |             |             |               |                 |             |             |         |
+| A1   | CPU         | 550.30      | 837.93      | 123.18        | 50416.53        | 837.81      | 259.44      | Rust    |
 | A2   | I/O+Conc    |             |             |               |                 |             |             |         |
 | A3   | Memory+CPU  |             |             |               |                 |             |             |         |
 | P1   | CPU+Conc    |             |             |               |                 |             |             |         |
